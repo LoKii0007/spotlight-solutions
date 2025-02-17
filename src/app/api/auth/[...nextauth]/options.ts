@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials):Promise<any> {
         try {
           if (!credentials?.email || !credentials?.password) {
-            return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+            throw new Error("Invalid credentials");
 
           }
   
@@ -34,7 +34,7 @@ export const authOptions: NextAuthOptions = {
           });
   
           if (!user || !user?.password) {
-            return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+            throw new Error("Invalid credentials");
           }
   
           const isCorrectPassword = await bcrypt.compare(
@@ -43,17 +43,17 @@ export const authOptions: NextAuthOptions = {
           );
   
           if (!isCorrectPassword) {
-            return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+            throw new Error("Invalid credentials");
           }
 
           if(!user.emailVerified){
-            return NextResponse.json({ error: "Please verify your email" }, { status: 401 });
+            throw new Error("Please verify your email");
           }
   
           return user
-        } catch (error) {
-          console.log(error)
-          return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+        } catch (error: any ) {
+          console.error('Error in authorize', error.message)
+          throw new Error("Invalid credentials");
         }
       }
     })
