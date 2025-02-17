@@ -42,10 +42,27 @@ export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Unauthorized", success: false }, { status: 401 });
     }
 
     const boardId = req.url.split("/").pop();
+
+    if (!boardId) {
+      return NextResponse.json({ message: "Board ID is required", success: false }, { status: 400 });
+    }
+
+    const deletedColumns = await prisma.columns.deleteMany({
+      where: {
+        boardId: boardId,
+      },
+    });
+    
+    const deletedTasks = await prisma.tasks.deleteMany({
+      where: {
+        boardId: boardId,
+        userId: session.user.id,
+      },
+    });
 
     const deletedBoard = await prisma.board.delete({
       where: {
@@ -55,12 +72,11 @@ export async function DELETE(req: Request) {
     });
 
     return NextResponse.json({
-      status: 200,
       message: "Board deleted successfully",
       deletedBoard,
-    });
-  } catch (error) {
-    console.error("Error in DELETE board api : ", error);
+    },{status: 200});
+  } catch (error: any) {
+    console.error("Error in DELETE board api : ", error.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

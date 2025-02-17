@@ -49,6 +49,8 @@ export function KanbanBoard({
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
+  const [openAddTaskDialog, setOpenAddTaskDialog] = useState(false);
+  const [openAddColumnDialog, setOpenAddColumnDialog] = useState(false);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const { toast } = useToast();
   const dispatch = useDispatch();
@@ -115,19 +117,27 @@ export function KanbanBoard({
   };
 
   const handleAddColumn = (title: string) => {
-    const id = title.toUpperCase().replace(/\s+/g, "_");
-    const newColumn: Column = {
-      id,
-      title,
-      tasks: [],
-      boardId: boardId,
-    };
-    setColumns([...columns, newColumn]);
-    const payload = {
-      boardId: boardId,
-      column: newColumn,
-    };
-    dispatch(addColumn(payload));
+    setIsAddingColumn(true);
+    try {
+      const id = title.toUpperCase().replace(/\s+/g, "_");
+      const newColumn: Column = {
+        id,
+        title,
+        tasks: [],
+        boardId: boardId,
+      };
+      setColumns([...columns, newColumn]);
+      const payload = {
+        boardId: boardId,
+        column: newColumn,
+      };
+      dispatch(addColumn(payload));
+    } catch (error) {
+      console.error("Error in adding column : ", error);
+    } finally {
+      setIsAddingColumn(false);
+      setOpenAddColumnDialog(false);
+    }
   };
 
   const handleDeleteColumn = (columnId: string) => {
@@ -149,7 +159,6 @@ export function KanbanBoard({
   const handleAddTask = async (taskData: Partial<Task>) => {
     setIsAddingTask(true);
     try {
-
       const data = {
         title: taskData.title,
         description: taskData.description,
@@ -184,19 +193,39 @@ export function KanbanBoard({
       console.error("Error in adding task : ", error);
     } finally {
       setIsAddingTask(false);
+      setOpenAddTaskDialog(false);
     }
   };
 
-  const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks((tasks) =>
-      tasks.map((task) => (task.id === taskId ? { ...task, ...updates } : task))
-    );
-    const payload = {
-      boardId: boardId,
-      taskId: taskId,
-      data: updates,
-    };
-    dispatch(updateTask(payload));
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
+    try {
+      setTasks((tasks) =>
+        tasks.map((task) =>
+          task.id === taskId ? { ...task, ...updates } : task
+        )
+      );
+      const payload = {
+        boardId: boardId,
+        taskId: taskId,
+        data: updates,
+      };
+      dispatch(updateTask(payload));
+      
+      const res = await axios.put(`/api/tasks/${taskId}`, updates, {validateStatus: (status) => status < 500});
+      if (res.status !== 200) {
+        toast({
+          title: "Error updating task",
+          description: res.data.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error updating task",
+        description: "Error updating task",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -207,8 +236,19 @@ export function KanbanBoard({
           title={board?.title || ""}
           description={board?.description || ""}
         />
-        <AddTaskDialog onAddTask={handleAddTask} columns={columns} />
-        <AddColumnDialog onAddColumn={handleAddColumn} />
+        <AddTaskDialog
+          onAddTask={handleAddTask}
+          columns={columns}
+          isAddingTask={isAddingTask}
+          open={openAddTaskDialog}
+          setOpen={setOpenAddTaskDialog}
+        />
+        <AddColumnDialog
+          onAddColumn={handleAddColumn}
+          open={openAddColumnDialog}
+          setOpen={setOpenAddColumnDialog}
+          isAddingColumn={isAddingColumn}
+        />
       </div>
       <DndContext
         sensors={sensors}

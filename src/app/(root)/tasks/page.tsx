@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash } from "lucide-react";
+import { PlusCircle, Trash, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,15 +28,17 @@ import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
 import EditBoardDialog from "@/components/EditBoardDialog";
 import DeleteBoardDialog from "@/components/DeleteBoardDialog";
+import Pagination from "@/components/Pagination";
 
 const page = () => {
   const [open, setOpen] = useState(false);
   const [boardName, setBoardName] = useState("");
   const [description, setDescription] = useState("");
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [boards, setBoards] = useState<Board[]>([]);
   const [fetched, setFetched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const dispatch = useDispatch();
   const router = useRouter();
@@ -78,10 +80,14 @@ const page = () => {
     }
   };
 
-  async function fetchBoards() {
+  async function fetchBoards(page: number) {
     setIsLoading(true);
     try {
-      const res = await axios.get("/api/board");
+      const res = await axios.get("/api/board", {
+        params: {
+          page,
+        },
+      });
       if (res.status !== 200) {
         toast({
           title: "Error fetching boards",
@@ -106,11 +112,11 @@ const page = () => {
   }
 
   useEffect(() => {
-    fetchBoards();
+    fetchBoards(currentPage);
   }, []);
 
   return (
-    <div className="p-12 flex flex-col gap-12">
+    <div className="px-8 py-8 flex flex-col gap-12 h-full">
       <div className="board-top flex justify-between items-center">
         <h1 className="text-2xl font-bold">All Boards</h1>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -142,45 +148,69 @@ const page = () => {
               <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
               </DialogClose>
-              <Button onClick={handleAddBoard} type="submit">
-                Add Board
+              <Button
+                className="w-[98px]"
+                onClick={handleAddBoard}
+                type="submit"
+              >
+                {isLoading ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  "Add Board"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="boards-bottom flex flex-col gap-3">
+      <div className="boards-bottom flex-shrink-0 flex flex-col gap-3 h-[calc(100%-84px)]">
         {isLoading ? (
           <div>Loading...</div>
         ) : boards.length > 0 ? (
-          boards.map((board: Board, index: number) => (
-            <div
-              key={board.id}
-              className="flex justify-between items-center border border-gray-600 bg-white text-black hover:bg-gray-100 shadow-sm"
-            >
-              <button
-                onClick={() => router.push(`/tasks/${board.id}`)}
-                className="board-card flex gap-12 justify-start px-12 items-center py-2 w-[90%]"
-              >
-                <h3>{index + 1}</h3>
-                <h3>{board.title}</h3>
-              </button>
+          <div className="flex flex-col gap-6 flex-shrink-0 h-full w-full justify-between items-center">
+            <div className="flex flex-col gap-3 w-full justify-center">
+            {boards.map((board: Board, index: number) => (
+              <>
+                <div
+                  key={board.id}
+                  className="w-full flex justify-between items-center border border-gray-600 bg-white text-black hover:bg-gray-100 shadow-sm px-5"
+                >
+                  <button
+                    onClick={() => router.push(`/tasks/${board.id}`)}
+                    className="board-card flex gap-12 justify-start items-center py-2 w-[90%]"
+                  >
+                    {/* <h3>{index + 1}</h3> */}
+                    <h3>{board.title}</h3>
+                  </button>
 
-              <EditBoardDialog
-                boardId={board.id}
-                title={board.title}
-                description={board.description}
-                setBoards={setBoards}
-              />
+                  <div className="flex gap-5">
+                    <EditBoardDialog
+                      variant="outline"
+                      boardId={board.id}
+                      title={board.title}
+                      description={board.description}
+                      setBoards={setBoards}
+                    />
 
-              <DeleteBoardDialog
-                boardId={board.id}
-                setBoards={setBoards}
-              />
+                    <button className="p-2">Archive</button>
 
+                    <DeleteBoardDialog
+                      boardId={board.id}
+                      setBoards={setBoards}
+                    />
+                  </div>
+                </div>
+              </>
+            ))}
             </div>
-          ))
+            <Pagination
+              totalCount={boards.length}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              fetchPage={() => fetchBoards(currentPage)}
+            />
+          </div>
         ) : (
           <div>No boards found</div>
         )}

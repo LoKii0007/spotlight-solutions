@@ -21,10 +21,12 @@ const EditBoardDialog = ({
   title,
   description,
   setBoards,
+  variant = "default",
 }: {
   boardId: string;
   title: string;
   description: string;
+  variant?: "outline" | "default";
   setBoards?: React.Dispatch<React.SetStateAction<Board[]>>;
 }) => {
   const [newTitle, setNewTitle] = useState(title);
@@ -73,11 +75,13 @@ const EditBoardDialog = ({
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button>Edit</Button>
+          {
+            variant === "outline" ? <button className="text-[#00AE2C] p-2 " >Edit</button> : <Button>View</Button>
+          }
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Board</DialogTitle>
+            <DialogTitle >Edit Board</DialogTitle>
           </DialogHeader>
           <DialogDescription>
             Edit the board title and description.

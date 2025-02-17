@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trash } from "lucide-react";
+import { Trash, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDispatch } from "react-redux";
 import { deleteBoard } from "@/redux/slices/BoardSlice";
@@ -49,6 +49,7 @@ const DeleteBoardDialog = ({ boardId, setBoards }: { boardId: string, setBoards?
       });
     } finally {
       setIsDeleting(false);
+      setDeleteOpen(false);
     }
   };
 
@@ -56,12 +57,11 @@ const DeleteBoardDialog = ({ boardId, setBoards }: { boardId: string, setBoards?
     <>
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="flex gap-2 shadow-none border-0 bg-transparent hover:bg-transparent text-red-500 px-8 hover:text-red-600"
+          <button
+            className="px-2 py-2 hover:bg-transparent text-red-500  hover:text-red-600"
           >
-            <Trash className="h-full w-4" />
-          </Button>
+            <Trash size={16} className="h-full" />
+          </button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -74,8 +74,8 @@ const DeleteBoardDialog = ({ boardId, setBoards }: { boardId: string, setBoards?
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button onClick={() => handleDeleteBoard(boardId)} type="submit">
-              Delete Board
+            <Button className="w-[114px]" onClick={() => handleDeleteBoard(boardId)} type="submit">
+              {isDeleting ? <Loader2 className="animate-spin" size={16} /> : "Delete Board"}
             </Button>
           </DialogFooter>
         </DialogContent>

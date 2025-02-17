@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react";
 import { Status } from "@/types/types";
 
 interface AddTaskDialogProps {
@@ -29,10 +29,12 @@ interface AddTaskDialogProps {
     priority: "low" | "medium" | "high";
   }) => void;
   columns: { id: Status; title: string }[];
+  isAddingTask: boolean;
+  open: boolean;
+  setOpen: (open: boolean) => void;
 }
 
-export function AddTaskDialog({ onAddTask, columns }: AddTaskDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddTaskDialog({ onAddTask, columns, isAddingTask, open, setOpen }: AddTaskDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<Status>(columns[0]?.id);
@@ -50,7 +52,6 @@ export function AddTaskDialog({ onAddTask, columns }: AddTaskDialogProps) {
       setTitle("");
       setDescription("");
       setPriority("medium");
-      setOpen(false);
     }
   };
 
@@ -109,8 +110,8 @@ export function AddTaskDialog({ onAddTask, columns }: AddTaskDialogProps) {
               </Select>
             </div>
           </div>
-          <Button type="submit" className="w-full">
-            Add Task
+          <Button type="submit" className="w-full" disabled={isAddingTask}>
+            {isAddingTask ? <Loader2 className="animate-spin" size={16} /> : "Add Task"}
           </Button>
         </form>
       </DialogContent>
