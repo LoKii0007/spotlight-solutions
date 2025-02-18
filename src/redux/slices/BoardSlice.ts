@@ -2,7 +2,9 @@
 
 import { Board, Column, Task, taskStatus } from "@/types/types";
 import { generateId } from "@/utils/helpers";
-import { createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+
 const initialTasks: Task[] = [
   {
     id: generateId(),
@@ -74,11 +76,33 @@ function generateInitialState() {
 
 const boardSlice = createSlice({
   name: "boards",
-  // initialState : generateInitialState(),
   initialState: [] as Board[],
   reducers: {
     initializeBoards: (state, action) => {
-      state = action.payload;
+      const {boards, columns, tasks} = action.payload
+
+      const boardMap = new Map<string, Board>(
+        boards.map((board:Board) => [board.id, { ...board, columns: [], tasks: [] }])
+      );
+
+      // Assign columns to respective boards
+      columns.forEach((column:Column) => {
+        const board = boardMap.get(column.boardId);
+        if (board) {
+          board.columns.push(column);
+        }
+      });
+
+      // Assign tasks to respective boards
+      tasks.forEach((task:Task) => {
+        const board = boardMap.get(task.boardId);
+        if (board) {
+          board.tasks.push(task);
+        }
+      });
+
+      // Convert map back to an array and update the state
+      state.push(...Array.from(boardMap.values()))
     },
 
     addBoard: (state, action) => {
@@ -117,15 +141,15 @@ const boardSlice = createSlice({
     },
 
     updateTask: (state, action) => {
-      const { boardId, taskId, data } = action.payload;
+      const payload = action.payload;
 
-      const board = state.find((board: Board) => board.id === boardId);
+      const board = state.find((board: Board) => board.id === payload.boardId);
       if (!board) return;
 
-      const taskIndex = board.tasks.findIndex((task) => task.id === taskId);
+      const taskIndex = board.tasks.findIndex((task) => task.id === payload.taskId);
       if (taskIndex === -1) return;
 
-      board.tasks[taskIndex] = { ...board.tasks[taskIndex], ...data };
+      board.tasks[taskIndex] = { ...board.tasks[taskIndex], ...payload.data };
       console.log("done");
     },
 
@@ -153,7 +177,7 @@ const boardSlice = createSlice({
         board.columns.push(action.payload.column);
       }
     },
-  },
+  }
 });
 
 export const {

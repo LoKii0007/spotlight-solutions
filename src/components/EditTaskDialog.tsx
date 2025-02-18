@@ -18,6 +18,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Task, Status } from "@/types/types";
+import axios from "axios";
+import { useToast } from "@/hooks/use-toast";
+import { useDispatch } from "react-redux";
+import { deleteTask } from "@/redux/slices/BoardSlice";
 
 interface EditTaskDialogProps {
   task: Task;
@@ -37,8 +41,11 @@ export function EditTaskDialog({
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState<Status>(task.status);
-  const [priority, setPriority] = useState<"low" | "medium" | "high">(task.priority);
-
+  const [priority, setPriority] = useState<"low" | "medium" | "high">(
+    task.priority
+  );
+  const { toast } = useToast();
+  const dispatch = useDispatch();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim()) {
@@ -49,6 +56,36 @@ export function EditTaskDialog({
         priority,
       });
       onOpenChange(false);
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    try {
+      const payload = {
+        boardId: task.boardId,
+        taskId: task.id,
+      };
+      dispatch(deleteTask(payload));
+      const res = await axios.delete(`/api/tasks/${task.id}`);
+      if (res.status !== 200) {
+        toast({
+          title: "Error deleting task",
+          description: res.data.message,
+          variant: "destructive",
+        });
+      }
+      toast({
+        title: "Task deleted successfully",
+        description: "Task deleted successfully",
+      });
+      onOpenChange(false);
+    } catch (error) {
+      // console.error("Error in deleting task : ", error);
+      toast({
+        title: "Error deleting task",
+        description: "Error deleting task",
+        variant: "destructive",
+      });
     }
   };
 
@@ -89,7 +126,12 @@ export function EditTaskDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Select value={priority} onValueChange={(value) => setPriority(value as "low" | "medium" | "high")}>
+              <Select
+                value={priority}
+                onValueChange={(value) =>
+                  setPriority(value as "low" | "medium" | "high")
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
@@ -103,6 +145,13 @@ export function EditTaskDialog({
           </div>
           <Button type="submit" className="w-full">
             Save Changes
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleDeleteTask}
+          >
+            Delete Task
           </Button>
         </form>
       </DialogContent>

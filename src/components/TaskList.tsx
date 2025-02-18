@@ -18,6 +18,8 @@ import { Check } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { updateTask, addTask } from "@/redux/slices/BoardSlice";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
+
 export default function TaskList() {
   const boards = useSelector((state: RootState) => state.boards);
   const allTasks = boards.map((board) => board.tasks).flat();
@@ -27,36 +29,55 @@ export default function TaskList() {
     title: "",
     priority: "Medium",
     boardId: "",
+    description: "",
+    status: "",
   });
   const dispatch = useDispatch();
-  const {toast} = useToast();
+  const { toast } = useToast();
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (!newTask.title.trim() || !newTask.boardId || !newTask.priority) {
       return;
     }
 
-    const task : Task = {
-      ...newTask,
-      id: generateId(),
-      status: "todo",
-      description: "",
-      priority: newTask.priority as "low" | "medium" | "high",
-      userId: '',
-    };
-    setTasks([...tasks, task]);
-    const payload = {
-      boardId: newTask.boardId,
-      task: task,
-    };
+    try {
+      const data = {
+        title: newTask.title,
+        description: newTask.description,
+        status: newTask.status,
+        priority: newTask.priority,
+        boardId: newTask.boardId,
+      };
 
-    dispatch(addTask(payload));
-    toast({
-      title: "Task added successfully",
-    });
+      const res = await axios.post(`/api/tasks`, data);
+      if (res.status !== 200) {
+        toast({
+          title: "Error adding task",
+          description: res.data.message,
+          variant: "destructive",
+        });
+      }
+
+      toast({
+        title: "Task added successfully",
+      });
+
+      setTasks([...tasks, res.data.task]);
+      const payload = {
+        task: res.data.task,
+      };
+      dispatch(addTask(payload));
+    } catch (error) {
+      console.error("Error in adding task : ", error);
+      toast({
+        title: "Error adding task",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
-  const toggleStatus = (id: string, boardId: string) => {
+  const toggleStatus = async (id: string, boardId: string) => {
     let newStatus = "";
     setTasks((prev) =>
       prev.map((task) => {
@@ -76,12 +97,25 @@ export default function TaskList() {
     const payload = {
       taskId: id,
       boardId: boardId,
-      data: {
-        status: newStatus,
-      },
+      status: newStatus,
     };
 
     dispatch(updateTask(payload));
+
+    const res = await axios.put(
+      `/api/tasks/${id}`,
+      { boardId: boardId, status: newStatus },
+      {
+        validateStatus: (status) => status < 500,
+      }
+    );
+    if (res.status !== 200) {
+      toast({
+        title: "Error updating task",
+        description: res.data.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredTasks = tasks.filter(
@@ -142,35 +176,39 @@ export default function TaskList() {
       </div>
 
       <div className="flex flex-col gap-4 p-4">
-        {filteredTasks.map((task) => (
-          <div className="flex items-center gap-5">
-            <button onClick={() => toggleStatus(task.id, task.boardId)}>
-              {task.status === taskStatus.TODO && (
-                <div className="w-4 h-4 bg-yellow-500"></div>
-              )}
-              {task.status === taskStatus.IN_PROGRESS && (
-                <div className="w-4 h-4 flex items-center justify-center bg-blue-500">
-                  <Check size={16} />
-                </div>
-              )}
-              {task.status === taskStatus.DONE && (
-                <div className="w-4 h-4 flex items-center justify-center bg-green-500">
-                  <Check size={16} />
-                </div>
-              )}
-            </button>
-            <div
-              className={`w-3 h-3 rounded-full ${
-                task.priority === "high"
-                  ? "bg-red-500"
-                  : task.priority === "low"
-                  ? "bg-green-500"
-                  : "bg-yellow-500"
-              }`}
-            ></div>
-            <span className="font-semibold">{task.title}</span>
-          </div>
-        ))}
+        {tasks.length > 0 ? (
+          filteredTasks.map((task) => (
+            <div className="flex items-center gap-5">
+              <button onClick={() => toggleStatus(task.id, task.boardId)}>
+                {task?.status === taskStatus.TODO && (
+                  <div className="w-4 h-4 bg-yellow-500"></div>
+                )}
+                {task?.status === taskStatus.IN_PROGRESS && (
+                  <div className="w-4 h-4 flex items-center justify-center bg-blue-500">
+                    <Check size={16} />
+                  </div>
+                )}
+                {task?.status === taskStatus.DONE && (
+                  <div className="w-4 h-4 flex items-center justify-center bg-green-500">
+                    <Check size={16} />
+                  </div>
+                )}
+              </button>
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  task?.priority === "high"
+                    ? "bg-red-500"
+                    : task?.priority === "low"
+                    ? "bg-green-500"
+                    : "bg-yellow-500"
+                }`}
+              ></div>
+              <span className="font-semibold">{task.title}</span>
+            </div>
+          ))
+        ) : (
+          <div className="text-center text-gray-500">No tasks found</div>
+        )}
       </div>
     </div>
   );

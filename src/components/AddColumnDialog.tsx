@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Loader2 } from "lucide-react";
 
@@ -13,7 +19,12 @@ interface AddColumnDialogProps {
   isAddingColumn: boolean;
 }
 
-export function AddColumnDialog({ onAddColumn, open, setOpen, isAddingColumn }: AddColumnDialogProps) {
+export function AddColumnDialog({
+  onAddColumn,
+  open,
+  setOpen,
+  isAddingColumn,
+}: AddColumnDialogProps) {
   const [title, setTitle] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -43,7 +54,13 @@ export function AddColumnDialog({ onAddColumn, open, setOpen, isAddingColumn }: 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <Button type="submit" disabled={isAddingColumn}>{isAddingColumn ? <Loader2 className="animate-spin" size={16} /> : "Add Column"}</Button>
+          <Button type="submit" disabled={isAddingColumn}>
+            {isAddingColumn ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              "Add Column"
+            )}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

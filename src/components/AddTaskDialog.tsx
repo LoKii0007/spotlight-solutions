@@ -73,6 +73,7 @@ export function AddTaskDialog({ onAddTask, columns, isAddingTask, open, setOpen 
               placeholder="Task title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -80,11 +81,12 @@ export function AddTaskDialog({ onAddTask, columns, isAddingTask, open, setOpen 
               placeholder="Task description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              required
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Select value={status} onValueChange={setStatus}>
+              <Select required value={status} onValueChange={setStatus}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -98,7 +100,7 @@ export function AddTaskDialog({ onAddTask, columns, isAddingTask, open, setOpen 
               </Select>
             </div>
             <div className="space-y-2">
-              <Select value={priority} onValueChange={(value) => setPriority(value as "low" | "medium" | "high")}>
+              <Select required value={priority} onValueChange={(value) => setPriority(value as "low" | "medium" | "high")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>

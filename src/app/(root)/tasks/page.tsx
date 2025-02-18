@@ -17,12 +17,10 @@ import { Input } from "@/components/ui/input";
 import { useSelector } from "react-redux";
 import {
   addBoard,
-  deleteBoard,
-  editBoard,
   initializeBoards,
 } from "@/redux/slices/BoardSlice";
 import { useDispatch } from "react-redux";
-import { Board } from "@/types/types";
+import { Board, Column, Task } from "@/types/types";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
@@ -35,9 +33,9 @@ const page = () => {
   const [boardName, setBoardName] = useState("");
   const [description, setDescription] = useState("");
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [fetched, setFetched] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const allBoards = useSelector((state: any) => state.boards)
+  const [boards, setBoards] = useState<Board[]>(allBoards || []);
   const [currentPage, setCurrentPage] = useState(1);
 
   const dispatch = useDispatch();
@@ -95,10 +93,13 @@ const page = () => {
           variant: "destructive",
         });
       }
-      const data: Board[] = res.data.boards;
-      setFetched(true);
-      setBoards(data);
-      dispatch(initializeBoards(data));
+      const payload = {
+        boards : res.data.boards,
+        columns : res.data.columns,
+        tasks : res.data.tasks
+      };
+      setBoards(res.data.boards);
+      dispatch(initializeBoards(payload));
     } catch (error) {
       console.log(error);
       toast({
@@ -110,10 +111,6 @@ const page = () => {
       setIsLoading(false);
     }
   }
-
-  useEffect(() => {
-    fetchBoards(currentPage);
-  }, []);
 
   return (
     <div className="px-8 py-8 flex flex-col gap-12 h-full">
@@ -138,11 +135,13 @@ const page = () => {
               placeholder="Board Name"
               value={boardName}
               onChange={(e) => setBoardName(e.target.value)}
+              required
             />
             <Input
               placeholder="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              required
             />
             <DialogFooter>
               <DialogClose asChild>
@@ -170,39 +169,39 @@ const page = () => {
         ) : boards.length > 0 ? (
           <div className="flex flex-col gap-6 flex-shrink-0 h-full w-full justify-between items-center">
             <div className="flex flex-col gap-3 w-full justify-center">
-            {boards.map((board: Board, index: number) => (
-              <>
-                <div
-                  key={board.id}
-                  className="w-full flex justify-between items-center border border-gray-600 bg-white text-black hover:bg-gray-100 shadow-sm px-5"
-                >
-                  <button
-                    onClick={() => router.push(`/tasks/${board.id}`)}
-                    className="board-card flex gap-12 justify-start items-center py-2 w-[90%]"
+              {boards.map((board: Board, index: number) => (
+                <>
+                  <div
+                    key={board.id}
+                    className="w-full flex justify-between items-center border border-gray-600 bg-white text-black hover:bg-gray-100 shadow-sm px-5"
                   >
-                    {/* <h3>{index + 1}</h3> */}
-                    <h3>{board.title}</h3>
-                  </button>
+                    <button
+                      onClick={() => router.push(`/tasks/${board.id}`)}
+                      className="board-card flex gap-12 justify-start items-center py-2 w-[90%]"
+                    >
+                      {/* <h3>{index + 1}</h3> */}
+                      <h3>{board.title}</h3>
+                    </button>
 
-                  <div className="flex gap-5">
-                    <EditBoardDialog
-                      variant="outline"
-                      boardId={board.id}
-                      title={board.title}
-                      description={board.description}
-                      setBoards={setBoards}
-                    />
+                    <div className="flex gap-5">
+                      <EditBoardDialog
+                        variant="outline"
+                        boardId={board.id}
+                        title={board.title}
+                        description={board.description}
+                        setBoards={setBoards}
+                      />
 
-                    <button className="p-2">Archive</button>
+                      <button className="p-2">Archive</button>
 
-                    <DeleteBoardDialog
-                      boardId={board.id}
-                      setBoards={setBoards}
-                    />
+                      <DeleteBoardDialog
+                        boardId={board.id}
+                        setBoards={setBoards}
+                      />
+                    </div>
                   </div>
-                </div>
-              </>
-            ))}
+                </>
+              ))}
             </div>
             <Pagination
               totalCount={boards.length}

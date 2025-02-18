@@ -28,7 +28,7 @@ export default function Signup() {
     setLoading(true);
     setMessage("");
     try {
-      const response: any = await axios.post("/api/signup", data);
+      const response: any = await axios.post("/api/auth/signup", data);
       if (response.status === 200) {
         toast.success("Signup successful");
         router.push("/login");

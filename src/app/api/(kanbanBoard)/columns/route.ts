@@ -8,13 +8,13 @@ export async function GET(req: Request) {
   try {
     const session= await getServerSession(authOptions)
     if(!session || !session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const { boardId } = await req.json();
 
     if(!boardId) {
-      return NextResponse.json({ error: "Board ID is required" }, { status: 400 });
+      return NextResponse.json({ message: "Board ID is required" }, { status: 400 });
     }
 
     const columns = await prisma.columns.findMany({
@@ -28,9 +28,9 @@ export async function GET(req: Request) {
       message: "Columns fetched successfully",
       columns,
     });
-  } catch (error) {
-    console.error("Error in GET columns api : ", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error in GET columns api : ", error.message);
+    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -38,19 +38,20 @@ export async function POST(req: Request) {
   try {
     const session= await getServerSession(authOptions)
     if(!session || !session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const { boardId, title } = await req.json();    
 
     if(!boardId || !title) {
-      return NextResponse.json({ error: "Board ID and title are required" }, { status: 400 });
+      return NextResponse.json({ message: "Board ID and title are required" }, { status: 400 });
     }
 
     const column = await prisma.columns.create({
       data: {
         title,
         boardId,
+        userId: session.user.id,
       },
     });
 
@@ -60,8 +61,8 @@ export async function POST(req: Request) {
       column,
     });
   } catch (error: any) {
-    console.error("Error in POST columns api : ", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Error in POST columns api : ", error.message);
+    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -69,7 +70,7 @@ export async function PUT(req: Request) {
   try {
     const session= await getServerSession(authOptions)
     if(!session || !session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const { id, title } = await req.json();
@@ -90,8 +91,8 @@ export async function PUT(req: Request) {
       updatedColumn,
     });
   } catch (error: any) {
-    console.error("Error in PUT columns api : ", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Error in PUT columns api : ", error.message);
+    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -99,7 +100,7 @@ export async function DELETE(req: Request) {
   try {
     const session= await getServerSession(authOptions)
     if(!session || !session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await req.json();
@@ -117,7 +118,7 @@ export async function DELETE(req: Request) {
       deletedColumn,
     });
   } catch (error: any) {
-    console.error("Error in DELETE columns api : ", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Error in DELETE columns api : ", error.message);
+    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }

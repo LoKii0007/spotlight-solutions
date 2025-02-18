@@ -13,6 +13,7 @@ export interface Task {
   title: string;
   description: string;
   status: Status;
+  columnId?: string;
   priority: "low" | "medium" | "high";
 }
 

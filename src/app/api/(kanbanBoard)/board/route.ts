@@ -7,7 +7,7 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const boards = await prisma.board.findMany({
@@ -16,12 +16,23 @@ export async function GET(req: Request) {
       },
     });
 
-    console.log("boards ");
-    return NextResponse.json({ status: 200, boards });
+    const columns = await prisma.columns.findMany({
+      where: {
+        userId: session.user.id,
+      },
+    });
+    
+    const tasks = await prisma.tasks.findMany({
+      where: {
+        userId: session.user.id,
+      },
+    });
+
+    return NextResponse.json({ boards, columns, tasks }, { status: 200 });
   } catch (error: any) {
     console.error("Error in GET board api : ", error.message);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { message: "Internal Server Error" },
       { status: 500 }
     );
   }
@@ -31,10 +42,13 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const { title, description } = await req.json();
+    if(!title || !description) {
+      return NextResponse.json({ message: "Title and description are required" }, { status: 400 });
+    }
 
     const board = await prisma.board.create({
       data: {
@@ -49,14 +63,17 @@ export async function POST(req: Request) {
         {
           title: "To Do",
           boardId: board.id,
+          userId: session.user.id,
         },
         {
           title: "In Progress",
           boardId: board.id,
+          userId: session.user.id,
         },
         {
           title: "Done",
           boardId: board.id,
+          userId: session.user.id,
         },
       ],
     });
@@ -67,10 +84,10 @@ export async function POST(req: Request) {
       board,
       columns,
     });
-  } catch (error) {
-    console.error("Error in POST board api : ", error);
+  } catch (error: any) {
+    console.error("Error in POST board api : ", error.message);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { message: "Internal Server Error" },
       { status: 500 }
     );
   }

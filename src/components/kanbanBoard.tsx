@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Column, Task, Status, Board } from "../types/types";
 import { KanbanColumn } from "./kanbanColumn";
 import { AddColumnDialog } from "./AddColumnDialog";
@@ -23,7 +23,6 @@ import {
   updateTask,
   addColumn,
   deleteColumn,
-  editBoard,
 } from "../redux/slices/BoardSlice";
 import { useDispatch } from "react-redux";
 import EditBoardDialog from "./EditBoardDialog";
@@ -47,7 +46,6 @@ export function KanbanBoard({
   const boards = useSelector((state: any) => state?.boards);
   const board = boards.find((board: Board) => board.id === boardId);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [openAddTaskDialog, setOpenAddTaskDialog] = useState(false);
   const [openAddColumnDialog, setOpenAddColumnDialog] = useState(false);
@@ -63,9 +61,11 @@ export function KanbanBoard({
     })
   );
 
-  const getColumnTasks = (columnId: Status) => {
-    return tasks.filter((task) => task.status === columnId);
-  };
+  const getColumnTasks = useMemo(()=>{
+    return (columnId: Status) => {
+      return tasks.filter((task) => task.status === columnId);
+    }
+  }, [tasks])
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id);
@@ -88,35 +88,49 @@ export function KanbanBoard({
     );
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     setActiveTask(null);
 
-    const { active, over } = event;
-    if (!over) return;
+    try {
+      const { active, over } = event;
+      if (!over) return;
 
-    const activeTask = tasks.find((t) => t.id === active.id);
-    const overTask = tasks.find((t) => t.id === over.id);
+      const activeTask = tasks.find((t) => t.id === active.id);
+      const overTask = tasks.find((t) => t.id === over.id);
 
-    if (!activeTask || !overTask) return;
+      if (!activeTask || !overTask) return;
 
-    const activeIndex = tasks.findIndex((t) => t.id === active.id);
-    const overIndex = tasks.findIndex((t) => t.id === over.id);
+      const activeIndex = tasks.findIndex((t) => t.id === active.id);
+      const overIndex = tasks.findIndex((t) => t.id === over.id);
 
-    if (activeIndex !== overIndex) {
-      setTasks((tasks) => arrayMove(tasks, activeIndex, overIndex));
-    }
+      if (activeIndex !== overIndex) {
+        setTasks((tasks) => arrayMove(tasks, activeIndex, overIndex));
+      }
 
-    const payload = {
-      boardId: boardId,
-      taskId: activeTask.id,
-      data: {
+      const payload = {
+        boardId: boardId,
+        taskId: activeTask.id,
         status: overTask.status,
-      },
-    };
-    dispatch(updateTask(payload));
+      };
+      dispatch(updateTask(payload));
+      const res = await axios.put(
+        `/api/tasks/${activeTask.id}`,
+        { status: overTask.status },
+        { validateStatus: (status) => status < 500 }
+      );
+      if (res.status !== 200) {
+        toast({
+          title: "Error updating task",
+          description: res.data.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error in updating task : ", error);
+    }
   };
 
-  const handleAddColumn = (title: string) => {
+  const handleAddColumn = async (title: string) => {
     setIsAddingColumn(true);
     try {
       const id = title.toUpperCase().replace(/\s+/g, "_");
@@ -132,22 +146,41 @@ export function KanbanBoard({
         column: newColumn,
       };
       dispatch(addColumn(payload));
+
+      const res = await axios.post(`/api/columns`, {
+        title,
+        boardId: boardId,
+      });
+      if (res.status !== 200) {
+        toast({
+          title: "Error adding column",
+          description: res.data.message,
+          variant: "destructive",
+        });
+      }
+      toast({
+        title: "Column added successfully",
+        description: "Column added successfully",
+      });
     } catch (error) {
-      console.error("Error in adding column : ", error);
+      toast({
+        title: "Error adding column",
+        description: "Error adding column",
+        variant: "destructive",
+      });
     } finally {
       setIsAddingColumn(false);
       setOpenAddColumnDialog(false);
     }
   };
 
-  const handleDeleteColumn = (columnId: string) => {
-    // Move all tasks from the deleted column to "TODO"
+  const handleDeleteColumn = async (columnId: string) => {
     setTasks((tasks) =>
       tasks.map((task) =>
         task.status === columnId ? { ...task, status: "TODO" } : task
       )
     );
-    // Remove the column
+
     setColumns((columns) => columns.filter((col) => col.id !== columnId));
     const payload = {
       boardId: boardId,
@@ -167,8 +200,6 @@ export function KanbanBoard({
         boardId: boardId,
       };
 
-      console.log(data);
-
       const res = await axios.post(`/api/tasks`, data);
       if (res.status !== 200) {
         toast({
@@ -180,17 +211,19 @@ export function KanbanBoard({
 
       toast({
         title: "Task added successfully",
-        description: "Task added successfully",
       });
 
       setTasks([...tasks, res.data.task]);
       const payload = {
-        boardId: boardId,
-        task: res.data.task,
+        ...res.data.task,
       };
       dispatch(addTask(payload));
     } catch (error) {
-      console.error("Error in adding task : ", error);
+      toast({
+        title: "Error adding task",
+        description: "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setIsAddingTask(false);
       setOpenAddTaskDialog(false);
@@ -205,13 +238,15 @@ export function KanbanBoard({
         )
       );
       const payload = {
+        ...updates,
         boardId: boardId,
         taskId: taskId,
-        data: updates,
       };
       dispatch(updateTask(payload));
-      
-      const res = await axios.put(`/api/tasks/${taskId}`, updates, {validateStatus: (status) => status < 500});
+
+      const res = await axios.put(`/api/tasks/${taskId}`, updates, {
+        validateStatus: (status) => status < 500,
+      });
       if (res.status !== 200) {
         toast({
           title: "Error updating task",

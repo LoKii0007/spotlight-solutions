@@ -76,7 +76,7 @@ const EditBoardDialog = ({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           {
-            variant === "outline" ? <button className="text-[#00AE2C] p-2 " >Edit</button> : <Button>View</Button>
+            variant === "outline" ? <button className="text-[#00AE2C] p-2 " >Edit</button> : <Button>Edit</Button>
           }
         </DialogTrigger>
         <DialogContent>

@@ -7,7 +7,7 @@ export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const boardId = req.url.split("/").pop();
@@ -29,10 +29,10 @@ export async function PUT(req: Request) {
       message: "Board updated successfully",
       updatedBoard,
     });
-  } catch (error) {
-    console.error("Error in PUT board api : ", error);
+  } catch (error: any) {
+    console.error("Error in PUT board api : ", error.message);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { message: "Internal Server Error" },
       { status: 500 }
     );
   }
@@ -54,6 +54,7 @@ export async function DELETE(req: Request) {
     const deletedColumns = await prisma.columns.deleteMany({
       where: {
         boardId: boardId,
+        userId: session.user.id,
       },
     });
     
@@ -78,7 +79,7 @@ export async function DELETE(req: Request) {
   } catch (error: any) {
     console.error("Error in DELETE board api : ", error.message);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+        { message: "Internal Server Error" },
       { status: 500 }
     );
   }

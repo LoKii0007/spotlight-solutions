@@ -1,6 +1,6 @@
 datasource db {
   provider = "postgresql" // or your preferred database
-  url      = env("DATABASE_URL")
+  url      = env("DIRECT_URL")
 }
 
 generator client {
@@ -39,6 +39,7 @@ model User {
   sessions         Session[]
   Boards           Board[]
   Tasks            Tasks[]
+  Columns          Columns[]
 }
 
 model CompanyDetails {
@@ -57,23 +58,30 @@ model Tasks {
   id          String   @id @default(cuid())
   boardId     String
   userId      String
-  Board       Board    @relation(fields: [boardId], references: [id])
-  User        User     @relation(fields: [userId], references: [id])
+  columnId    String
   priority    String
   status      String
   title       String
   description String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  Board       Board    @relation(fields: [boardId], references: [id])
+  User        User     @relation(fields: [userId], references: [id])
+  Column      Columns  @relation(fields: [columnId], references: [id])
 }
 
 model Columns {
   id        String   @id @default(cuid())
   title     String
   boardId   String
-  Board     Board    @relation(fields: [boardId], references: [id])
+  userId    String
+  Tasks     Tasks[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  User      User     @relation(fields: [userId], references: [id])
+  Board     Board    @relation(fields: [boardId], references: [id])
 }
 
 model Board {
@@ -83,7 +91,8 @@ model Board {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   userId      String
-  user        User      @relation(fields: [userId], references: [id])
   Tasks       Tasks[]
   Columns     Columns[]
+
+  user        User      @relation(fields: [userId], references: [id])
 }

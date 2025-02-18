@@ -10,10 +10,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const id = req.url.split("/").pop();
     const tasks = await prisma.tasks.findMany({
       where: {
-        boardId: id,
         userId: session.user.id,
       },
     });
@@ -37,14 +35,6 @@ export async function PUT(req: Request) {
 
     const id = req.url.split("/").pop();
     const body = await req.json();
-    const { title, description, status, priority } = body;
-
-    if (!id || !title || !description || !status || !priority) {
-      return NextResponse.json(
-        { message: "Missing required fields" },
-        { status: 400 }
-      );
-    }
 
     const updatedTask = await prisma.tasks.update({
       where: {
@@ -52,10 +42,7 @@ export async function PUT(req: Request) {
         userId: session.user.id,
       },
       data: {
-        title,
-        description,
-        status,
-        priority,
+        ...body
       },
     });
 
@@ -66,6 +53,39 @@ export async function PUT(req: Request) {
     return NextResponse.json({ status: 200, task: updatedTask });
   } catch (error: any) {
     console.error("Error in PUT tasks api : ", error.message);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user.id) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const id = req.url.split("/").pop();
+
+    const deletedTask = await prisma.tasks.delete({
+      where: {
+        id: id,
+        userId: session.user.id,
+      },
+    });
+
+    if (!deletedTask) {
+      return NextResponse.json({ message: "Task not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      status: 200,
+      message: "Task deleted successfully",
+    });
+  } catch (error: any) {
+    console.error("Error in DELETE tasks api : ", error.message);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }
